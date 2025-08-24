@@ -1,15 +1,13 @@
-import os
-
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 
-
 import keyboards.user as user_keyboards
+import config as cfg
 
 from states import UserApplications
 from keyboards.user import TECHS
-from db.requests import add_application, get_last_application_by_user, get_user
+from db.crud import add_application, get_last_application_by_user, get_user
 
 
 router = Router()
@@ -22,7 +20,7 @@ user_choices = {}
 async def leave_request(message: Message, state: FSMContext):
     await message.answer(
         text='<strong>Хорошо!</strong> Давай начнем с того, какую услугу ты хочешь заказать? 🛠️\n<i>Выбери услугу, которую ты хочешь получить:</i>',
-        reply_markup=await user_keyboards.application_services(),
+        reply_markup=user_keyboards.application_services(),
         parse_mode='HTML'
     )
     await state.set_state(UserApplications.service)
@@ -35,7 +33,7 @@ async def get_service(message: Message, state: FSMContext):
     if service == 'Назад':
         await message.answer(
             text='<strong>✅ Вы вернулись в главное меню.</strong>',
-            reply_markup=await user_keyboards.main_menu(),
+            reply_markup=user_keyboards.main_menu(),
             parse_mode='HTML'
         )
         await state.clear()
@@ -51,7 +49,7 @@ async def get_service(message: Message, state: FSMContext):
     await state.update_data(service=service)
     await message.answer(
         text='<strong>Отлично!</strong> Теперь опиши свою заявку подробнее. 📝\n<i>Напиши описание услуги, которую ты хочешь заказать.</i>\n<i>Можно прикрепить скриншот, чтобы было понятнее.</i>',
-        reply_markup=await user_keyboards.miss(),
+        reply_markup=user_keyboards.miss(),
         parse_mode='HTML'
     )
     await state.set_state(UserApplications.description)
@@ -65,12 +63,12 @@ async def get_description(message: Message, state: FSMContext):
     if description == 'Назад':
         await message.answer(
             text='<strong>✅ Вы вернулись в главное меню.</strong>',
-            reply_markup=await user_keyboards.main_menu(),
+            reply_markup=user_keyboards.main_menu(),
             parse_mode='HTML'
         )
         await state.clear()
         return
-    
+
     if not description and not file_id:
         await message.answer(
             text='❌ <strong>Пожалуйста, опиши свою заявку</strong>',
@@ -81,10 +79,12 @@ async def get_description(message: Message, state: FSMContext):
     description = 'Нет описания' if description == 'Пропустить' else description
     await state.update_data(description=description, file_id=file_id)
 
-    user_choices[message.from_user.id] = {tech: False for tech in TECHS}
+    await state.update_data(choices={tech: False for tech in TECHS})
+
+    data = await state.get_data()
     await message.answer(
         text='<strong>Хорошо! Теперь выбери технологии, которые ты хочешь использовать в своём проекте. 🌐</strong>',
-        reply_markup=await user_keyboards.build_tech_keyboard(message.from_user.id, user_choices),
+        reply_markup=user_keyboards.build_tech_keyboard(data["choices"]),
         parse_mode='HTML'
     )
     await state.set_state(UserApplications.technologies)
@@ -92,20 +92,26 @@ async def get_description(message: Message, state: FSMContext):
 
 @router.callback_query(UserApplications.technologies, F.data.startswith("toggle:"))
 async def toggle_technology(callback: CallbackQuery, state: FSMContext):
-    user_id = callback.from_user.id
     tech = callback.data.split(":")[1]
-    user_choices[user_id][tech] = not user_choices[user_id][tech]
+
+    data = await state.get_data()
+    choices = data.get("choices", {tech: False for tech in TECHS})
+
+    choices[tech] = not choices[tech]
+
+    await state.update_data(choices=choices)
 
     await callback.message.edit_reply_markup(
-        reply_markup=await user_keyboards.build_tech_keyboard(user_id, user_choices)
+        reply_markup=user_keyboards.build_tech_keyboard(choices)
     )
     await callback.answer()
 
 
 @router.callback_query(UserApplications.technologies, F.data == "confirm")
 async def confirm_technologies(callback: CallbackQuery, state: FSMContext):
-    user_id = callback.from_user.id
-    chosen = [tech for tech, selected in user_choices[user_id].items() if selected]
+    data = await state.get_data()
+    choices = data.get("choices", {})
+    chosen = [tech for tech, selected in choices.items() if selected]
 
     if not chosen:
         await callback.answer("⚠️ Нужно выбрать хотя бы один вариант", show_alert=True)
@@ -115,7 +121,7 @@ async def confirm_technologies(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await callback.message.answer(
         text='<strong>Отлично! Теперь выберите срок выполнения заявки. 📅</strong>',
-        reply_markup=await user_keyboards.chose_deadline(),
+        reply_markup=user_keyboards.chose_deadline(),
         parse_mode='HTML'
     )
     await state.set_state(UserApplications.deadline)
@@ -128,7 +134,7 @@ async def get_deadline(message: Message, state: FSMContext):
     if deadline == 'Назад':
         await message.answer(
             text='<strong>✅ Вы вернулись в главное меню.</strong>',
-            reply_markup=await user_keyboards.main_menu(),
+            reply_markup=user_keyboards.main_menu(),
             parse_mode='HTML'
         )
         await state.clear()
@@ -149,23 +155,24 @@ async def get_deadline(message: Message, state: FSMContext):
     technologies = data.get('technologies')
     file_id = data.get('file_id')
 
+    text = (
+    f'<strong>Услуга:</strong> {service}\n'
+    f'<strong>Описание:</strong> {description}\n'
+    f'<strong>Технологии:</strong> {", ".join(technologies)}\n'
+    f'<strong>Срок выполнения:</strong> {deadline}'
+    )
+    
     if file_id:
         await message.answer_photo(
             photo=file_id,
-            caption=f'<strong>Услуга:</strong> {service}\n'
-             f'<strong>Описание:</strong> {description}\n'
-             f'<strong>Технологии:</strong> {", ".join(technologies)}\n'
-             f'<strong>Срок выполнения:</strong> {deadline}',
-            reply_markup=await user_keyboards.confirmation(),
+            caption=text,
+            reply_markup=user_keyboards.confirmation(),
             parse_mode='HTML'
         )
     else:
         await message.answer(
-            text=f'<strong>Услуга:</strong> {service}\n'
-             f'<strong>Описание:</strong> {description}\n'
-             f'<strong>Технологии:</strong> {", ".join(technologies)}\n'
-             f'<strong>Срок выполнения:</strong> {deadline}',
-            reply_markup=await user_keyboards.confirmation(),
+            text=text,
+            reply_markup=user_keyboards.confirmation(),
             parse_mode='HTML'
         )
 
@@ -200,24 +207,24 @@ async def confirm_application(callback: CallbackQuery, state: FSMContext):
     
     if file_id:
         await callback.bot.send_photo(
-            chat_id=int(os.getenv("CHAT_ID")),
+            chat_id=int(cfg.CHAT_ID),
             photo=file_id,
             caption=text,
-            reply_markup=await user_keyboards.link(user.get('username')),
+            reply_markup=user_keyboards.link(user.get('username')),
             parse_mode='HTML'
         )
     else:
         await callback.bot.send_message(
-            chat_id=int(os.getenv("CHAT_ID")),
+            chat_id=int(cfg.CHAT_ID),
             text=text,
-            reply_markup=await user_keyboards.link(user.get('username')),
+            reply_markup=user_keyboards.link(user.get('username')),
             parse_mode='HTML'
         )
 
     await callback.message.answer(
         text='✅ <strong>Ваша заявка успешно отправлена!</strong>\n'
              'Мы свяжемся с вами в ближайшее время.',
-        reply_markup=await user_keyboards.main_menu(),
+        reply_markup=user_keyboards.main_menu(),
         parse_mode='HTML'
     )
     
@@ -230,7 +237,7 @@ async def cancel_application(callback: CallbackQuery, state: FSMContext):
     
     await callback.message.answer(
         text='❌ <strong>Вы отменили заявку.</strong>',
-        reply_markup=await user_keyboards.main_menu(),
+        reply_markup=user_keyboards.main_menu(),
         parse_mode='HTML'
     )
     

@@ -1,6 +1,5 @@
 import re
 import asyncpg
-import keyboards.user as user_keyboards
 
 from datetime import datetime
 
@@ -9,7 +8,9 @@ from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 
-from db.requests import create_user, update_user_details, check_user_fields
+import keyboards.user as user_keyboards
+
+from db.crud import create_user, update_user_details, check_user_fields
 from states import UserRegistration
 
 
@@ -30,7 +31,7 @@ async def start_command(message: Message, state: FSMContext):
         if await check_user_fields(tg_id=message.from_user.id):
             await message.answer(
                 text='👋 Привет! Ты уже зарегистрирован в нашем боте.',
-                reply_markup=await user_keyboards.main_menu(),
+                reply_markup=user_keyboards.main_menu(),
                 parse_mode='HTML'
             )
             return
@@ -89,7 +90,7 @@ async def get_date_birth(message: Message, state: FSMContext):
     
     await message.answer(
         text='📲 <strong>Отлично!</strong>\nТеперь, пожалуйста, <strong>поделись своим контактом</strong>, чтобы мы могли с тобой связаться.',
-        reply_markup=await user_keyboards.share_contact(),
+        reply_markup=user_keyboards.share_contact(),
         parse_mode='HTML'
     )
     await state.set_state(UserRegistration.number)
@@ -116,9 +117,8 @@ async def get_contact(message: Message, state: FSMContext):
 
     await message.answer(
         text=f'✅ <strong>Регистрация завершена!</strong>\n👤 <strong>ФИО:</strong> {full_name}\n🎂 <strong>Дата рождения:</strong> {date_birth}\n📞 <strong>Номер телефона:</strong> {contact.phone_number}\n🙏 Спасибо за предоставленную информацию!',
-        reply_markup=await user_keyboards.main_menu(),
+        reply_markup=user_keyboards.main_menu(),
         parse_mode='HTML'
     )
     await state.clear()
-
-    
+ 

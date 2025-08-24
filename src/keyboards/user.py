@@ -1,21 +1,20 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
-
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
-async def share_contact():
+def share_contact():
     return ReplyKeyboardMarkup(
         keyboard=[
             [
-                KeyboardButton(text="📱 Отправить контакт", request_contact=True)  
+                KeyboardButton(text="📱 Отправить контакт", request_contact=True)
             ]
         ],
         resize_keyboard=True,
         one_time_keyboard=True
     )
-    
 
-async def main_menu():
+
+def main_menu():
     return ReplyKeyboardMarkup(
         keyboard=[
             [
@@ -28,9 +27,9 @@ async def main_menu():
         ],
         resize_keyboard=True
     )
-    
 
-async def contact_info():
+
+def contact_info():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -43,7 +42,7 @@ async def contact_info():
     )
 
 
-async def application_services():
+def application_services():
     return ReplyKeyboardMarkup(
         keyboard=[
             [
@@ -61,9 +60,9 @@ async def application_services():
         resize_keyboard=True,
         one_time_keyboard=True
     )
-    
 
-async def miss():
+
+def miss():
     return ReplyKeyboardMarkup(
         keyboard=[
             [
@@ -74,14 +73,13 @@ async def miss():
         resize_keyboard=True,
         one_time_keyboard=True
     )
-    
 
-  
+
 TECHS = ["Python", "JavaScript", "UI/UX дизайн", "1С интеграция"]
 
-async def build_tech_keyboard(user_id: int, user_choices: dict):
+
+def build_tech_keyboard(choices: dict):
     builder = InlineKeyboardBuilder()
-    choices = user_choices.get(user_id, {tech: False for tech in TECHS})
 
     for tech, selected in choices.items():
         emoji = "✅" if selected else "❌"
@@ -94,12 +92,12 @@ async def build_tech_keyboard(user_id: int, user_choices: dict):
         text="✔️ Подтвердить",
         callback_data="confirm"
     )
-    
+
     builder.adjust(1)
     return builder.as_markup()
 
 
-async def chose_deadline():
+def chose_deadline():
     return ReplyKeyboardMarkup(
         keyboard=[
             [
@@ -116,9 +114,9 @@ async def chose_deadline():
         resize_keyboard=True,
         one_time_keyboard=True
     )
-    
 
-async def confirmation():
+
+def confirmation():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -133,9 +131,9 @@ async def confirmation():
             ]
         ]
     )
-    
-    
-async def link(username: str):
+
+
+def link(username: str):
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [

@@ -1,15 +1,13 @@
-from filters import IsAdmin
-
-
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
-
 import keyboards.admin as admin_keyboards
-from paginator import make_user_keyboard, make_application_keyboard
-from db.requests import get_users_count, get_users_list, get_user, get_applications_count, get_applications_list, get_application_by_id
+import config as cfg
+
+from filters import IsAdmin
+from db.crud import get_users_count, get_users_list, get_user, get_applications_count, get_applications_list, get_application_by_id
 
 
 router=Router()
@@ -21,7 +19,7 @@ async def admin(message: Message, state: FSMContext):
     
     await message.answer(
         text='👨‍💼 <strong>Вы в административной панели!</strong>\n<i>Здесь вы можете управлять ботом и просматривать статистику.</i>',
-        reply_markup=await admin_keyboards.main_menu_admin(),
+        reply_markup=admin_keyboards.main_menu_admin(),
         parse_mode='HTML'
     )
     
@@ -34,14 +32,14 @@ async def main_menu_admin(callback: CallbackQuery, state: FSMContext):
     try:
         await callback.message.edit_text(
             text='👨‍💼 <strong>Вы в административной панели!</strong>\n<i>Здесь вы можете управлять ботом и просматривать статистику.</i>',
-            reply_markup=await admin_keyboards.main_menu_admin(),
+            reply_markup=admin_keyboards.main_menu_admin(),
             parse_mode='HTML'
         )
     except:
         await callback.message.delete()
         await callback.message.answer(
             text='👨‍💼 <strong>Вы в административной панели!</strong>\n<i>Здесь вы можете управлять ботом и просматривать статистику.</i>',
-            reply_markup=await admin_keyboards.main_menu_admin(),
+            reply_markup=admin_keyboards.main_menu_admin(),
             parse_mode='HTML'
         )
     
@@ -51,11 +49,11 @@ async def users_stats(callback: CallbackQuery):
     await callback.answer()
     page=1
     total_users = await get_users_count()
-    total_pages = (total_users + 5 - 1) // 5
-    users = await get_users_list(offset=(page-1)*5)
+    total_pages = (total_users + cfg.USERS_PER_PAGE - 1) // cfg.USERS_PER_PAGE
+    users = await get_users_list(offset=(page-1)*cfg.USERS_PER_PAGE)
     await callback.message.edit_text(
         text='📊 <strong>Статистика пользователей:</strong>\n<i>Здесь будет отображаться количество зарегистрированных пользователей.</i>',
-        reply_markup=await make_user_keyboard(page, users, total_pages),
+        reply_markup=admin_keyboards.make_user_keyboard(page, users, total_pages),
         parse_mode='HTML'
     )
     
@@ -64,9 +62,9 @@ async def users_stats(callback: CallbackQuery):
 async def change_page(callback: CallbackQuery):
     page = int(callback.data.split(":")[1])
     total_users = await get_users_count()
-    total_pages = (total_users + 5 - 1) // 5
-    users = await get_users_list(offset=(page-1)*5)
-    keyboard = await make_user_keyboard(page, users, total_pages)
+    total_pages = (total_users + cfg.USERS_PER_PAGE - 1) // cfg.USERS_PER_PAGE
+    users = await get_users_list(offset=(page-1)*cfg.USERS_PER_PAGE)
+    keyboard = admin_keyboards.make_user_keyboard(page, users, total_pages)
     await callback.message.edit_reply_markup(reply_markup=keyboard)
     
 
@@ -85,7 +83,7 @@ async def show_user(callback: CallbackQuery):
         )
         await callback.message.edit_text(
             text=text,
-            reply_markup=await admin_keyboards.back_to_list_users(),
+            reply_markup=admin_keyboards.back_to_list_users(),
             parse_mode='HTML'
         )
     else:
@@ -97,19 +95,19 @@ async def applications_stats(callback: CallbackQuery):
     await callback.answer()
     page=1
     total_applications = await get_applications_count()
-    total_pages = (total_applications + 5 - 1) // 5
-    applications = await get_applications_list(offset=(page-1)*5)
+    total_pages = (total_applications + cfg.APPLICATIONS_PER_PAGE - 1) // cfg.APPLICATIONS_PER_PAGE
+    applications = await get_applications_list(offset=(page-1)*cfg.APPLICATIONS_PER_PAGE)
     try:
         await callback.message.edit_text(
             text='📊 <strong>Статистика заявок:</strong>\n<i>Здесь будет отображаться количество заявок и их статус.</i>',
-            reply_markup=await make_application_keyboard(page, applications, total_pages),
+            reply_markup=admin_keyboards.make_application_keyboard(page, applications, total_pages),
             parse_mode='HTML'
         )
     except:
         await callback.message.delete()
         await callback.message.answer(
             text='📊 <strong>Статистика заявок:</strong>\n<i>Здесь будет отображаться количество заявок и их статус.</i>',
-            reply_markup=await make_application_keyboard(page, applications, total_pages),
+            reply_markup=admin_keyboards.make_application_keyboard(page, applications, total_pages),
             parse_mode='HTML'
         )
     
@@ -118,9 +116,9 @@ async def applications_stats(callback: CallbackQuery):
 async def change_page(callback: CallbackQuery):
     page = int(callback.data.split(":")[1])
     total_applications = await get_applications_count()
-    total_pages = (total_applications + 5 - 1) // 5
-    applications = await get_applications_list(offset=(page-1)*5)
-    keyboard = await make_application_keyboard(page, applications, total_pages)
+    total_pages = (total_applications + cfg.APPLICATIONS_PER_PAGE - 1) // cfg.APPLICATIONS_PER_PAGE
+    applications = await get_applications_list(offset=(page-1)*cfg.APPLICATIONS_PER_PAGE)
+    keyboard = admin_keyboards.make_application_keyboard(page, applications, total_pages)
     await callback.message.edit_reply_markup(reply_markup=keyboard)
     
     
@@ -146,13 +144,13 @@ async def show_application(callback: CallbackQuery):
             await callback.message.answer_photo(
                 photo=application['screenshot'],
                 caption=text,
-                reply_markup=await admin_keyboards.back_to_list_applications(),
+                reply_markup=admin_keyboards.back_to_list_applications(),
                 parse_mode='HTML'
             )
         else:
             await callback.message.edit_text(
                 text=text,
-                reply_markup=await admin_keyboards.back_to_list_applications(),
+                reply_markup=admin_keyboards.back_to_list_applications(),
                 parse_mode='HTML'
             )
     else:
@@ -173,6 +171,6 @@ async def all_stats(callback: CallbackQuery):
     
     await callback.message.edit_text(
         text=text,
-        reply_markup=await admin_keyboards.back_to_main_menu(),
+        reply_markup=admin_keyboards.back_to_main_menu(),
         parse_mode='HTML'
     )

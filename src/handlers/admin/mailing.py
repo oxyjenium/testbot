@@ -1,14 +1,14 @@
 import asyncio
 
-import keyboards.admin as admin_keyboards
-
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 
+import keyboards.admin as admin_keyboards
+
 from states import UserMailing
-from db.requests import get_all_user
+from db.crud import get_all_user
 from utils.admin import delete_message_with_timeout
 
 
@@ -20,7 +20,7 @@ async def mailing(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await callback.message.edit_text(
         text='📬 <strong>Рассылка сообщений</strong>\n<i>Здесь вы можете отправить сообщение всем пользователям бота.</i>\nК сообщению можно прикрепить <strong>одно</strong> фото',
-        reply_markup=await admin_keyboards.back_to_main_menu(),
+        reply_markup=admin_keyboards.back_to_main_menu(),
         parse_mode='HTML'
     )
     await state.set_state(UserMailing.message)
@@ -42,7 +42,7 @@ async def get_mailing_message(message: Message, state: FSMContext):
     
     await message.answer(
         text='📬 <strong>Отлично, теперь выбери выберите время отправки рекламы:</strong>',
-        reply_markup=await admin_keyboards.mailing_time(),
+        reply_markup=admin_keyboards.mailing_time(),
         parse_mode='HTML'
     )
     
@@ -56,7 +56,7 @@ async def set_mailing_timer(callback: CallbackQuery, state: FSMContext):
     
     await callback.message.edit_text(
         text='<b>Выберите период времени в часах, по прошествии которого необходимо автоматически удалить рекламу.</b>',
-        reply_markup=await admin_keyboards.mailing_delete_time(),
+        reply_markup=admin_keyboards.mailing_delete_time(),
         parse_mode='HTML'
     )
     
@@ -85,13 +85,13 @@ async def set_mailing_delete_time(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer_photo(
             photo=photo_id,
             caption=text,
-            reply_markup=await admin_keyboards.confirm_mailing(),
+            reply_markup=admin_keyboards.confirm_mailing(),
             parse_mode='HTML'
         )
     else:
         await callback.message.edit_text(
             text=text,
-            reply_markup=await admin_keyboards.confirm_mailing(),
+            reply_markup=admin_keyboards.confirm_mailing(),
             parse_mode='HTML'
         )
         
@@ -135,9 +135,7 @@ async def confirm_mailing(callback: CallbackQuery, state: FSMContext):
             
     await callback.message.answer(
         text=f'✅ <strong>Рассылка завершена!</strong>\n<i>Сообщение было отправлено <strong>{count}</strong> пользователям.</i>',
-        reply_markup=await admin_keyboards.back_to_main_menu(),
+        reply_markup=admin_keyboards.back_to_main_menu(),
         parse_mode='HTML'
     )
     await state.clear()
-    
-    

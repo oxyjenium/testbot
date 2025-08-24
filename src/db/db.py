@@ -1,16 +1,18 @@
 import asyncpg
-import os
+
+import config as cfg
+
 
 pool = None
 
 async def init_db():
     global pool
     pool = await asyncpg.create_pool(
-        user=os.getenv("USER_DB"),
-        password=os.getenv("PASSWORD_DB"),
-        database=os.getenv("NAME_DB"),
-        host=os.getenv("HOST_DB"),
-        port=os.getenv("PORT_DB")
+        user=cfg.USER_DB,
+        password=cfg.PASSWORD_DB,
+        database=cfg.NAME_DB,
+        host=cfg.HOST_DB,
+        port=cfg.PORT_DB
     )
 
     async with pool.acquire() as conn:

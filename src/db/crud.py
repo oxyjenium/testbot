@@ -1,6 +1,6 @@
-from db.crud import get_connection
-
 from datetime import date
+
+from db.db import get_connection
 
 
 async def create_user(tg_id: int, username: str) -> None:
@@ -62,7 +62,7 @@ async def add_application(
             user_id,
             service,
             description,
-            ", ".join(technologies),  # сохраняем список как строку
+            ", ".join(technologies),
             deadline,
             screenshot
         )

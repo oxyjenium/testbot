@@ -1,7 +1,7 @@
-import keyboards.user as user_keyboards
-
 from aiogram import Router, F
 from aiogram.types import Message
+
+import keyboards.user as user_keyboards
 
 
 router = Router()
@@ -20,6 +20,6 @@ async def company_info(message: Message):
 async def contacts(message: Message):
     await message.answer(
         text='💬 <strong>Если у вас есть вопросы или предложения, не стесняйтесь обращаться к нам!</strong>',
-        reply_markup=await user_keyboards.contact_info(),
+        reply_markup=user_keyboards.contact_info(),
         parse_mode='HTML'
     )

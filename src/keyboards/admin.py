@@ -1,7 +1,7 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
-async def main_menu_admin():
+def main_menu_admin():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -16,7 +16,7 @@ async def main_menu_admin():
                     callback_data="applications_stats"
                 ),
             ],
-             [
+            [
                 InlineKeyboardButton(
                     text="Общая статистика",
                     callback_data="all_stats"
@@ -30,9 +30,9 @@ async def main_menu_admin():
             ]
         ]
     )
-    
 
-async def back_to_list_users():
+
+def back_to_list_users():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -43,9 +43,9 @@ async def back_to_list_users():
             ],
         ]
     )
-    
-    
-async def back_to_list_applications():
+
+
+def back_to_list_applications():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -56,9 +56,9 @@ async def back_to_list_applications():
             ],
         ]
     )
-    
 
-async def back_to_main_menu():
+
+def back_to_main_menu():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -69,30 +69,30 @@ async def back_to_main_menu():
             ],
         ]
     )
-    
 
-async def mailing_time():
+
+def mailing_time():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="1 минута", 
+                    text="1 минута",
                     callback_data="view_set_timer:60",
                 ),
                 InlineKeyboardButton(
-                    text="5 минут", 
+                    text="5 минут",
                     callback_data="view_set_timer:300",
                 ),
                 InlineKeyboardButton(
-                    text="10 минут", 
+                    text="10 минут",
                     callback_data="view_set_timer:600",
                 ),
                 InlineKeyboardButton(
-                    text="15 минут", 
+                    text="15 минут",
                     callback_data="view_set_timer:900",
                 ),
                 InlineKeyboardButton(
-                    text="1 секунда", 
+                    text="1 секунда",
                     callback_data="view_set_timer:1",
                 )
             ],
@@ -104,30 +104,30 @@ async def mailing_time():
             ]
         ]
     )
-    
 
-async def mailing_delete_time():
+
+def mailing_delete_time():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="1 час", 
+                    text="1 час",
                     callback_data="view_set_delete_timer:3600",
                 ),
                 InlineKeyboardButton(
-                    text="3 часа", 
+                    text="3 часа",
                     callback_data="view_set_delete_timer:10800",
                 ),
                 InlineKeyboardButton(
-                    text="6 часов", 
+                    text="6 часов",
                     callback_data="view_set_delete_timer:21600",
                 ),
                 InlineKeyboardButton(
-                    text="12 часов", 
+                    text="12 часов",
                     callback_data="view_set_delete_timer:43200",
                 ),
                 InlineKeyboardButton(
-                    text="10 секунд", 
+                    text="10 секунд",
                     callback_data="view_set_delete_timer:10",
                 )
             ],
@@ -139,9 +139,9 @@ async def mailing_delete_time():
             ]
         ]
     )
-    
 
-async def confirm_mailing():
+
+def confirm_mailing():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -156,3 +156,59 @@ async def confirm_mailing():
             ]
         ]
     )
+
+
+def make_user_keyboard(page: int, users, total_pages: int):
+    keyboard = []
+    for user in users:
+        keyboard.append([InlineKeyboardButton(
+            text=user["username"],
+            callback_data=f"user:{user['tg_id']}"
+        )])
+
+    nav_buttons = []
+
+    prev_page = page - 1 if page > 1 else total_pages
+    nav_buttons.append(
+        InlineKeyboardButton(text="⬅ Назад", callback_data=f"page:{prev_page}")
+    )
+
+    nav_buttons.append(
+        InlineKeyboardButton(text=f"{page}/{total_pages}", callback_data="none")
+    )
+
+    next_page = page + 1 if page < total_pages else 1
+    nav_buttons.append(
+        InlineKeyboardButton(text="Вперед ➡", callback_data=f"page:{next_page}")
+    )
+
+    keyboard.append(nav_buttons)
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def make_application_keyboard(page: int, applications, total_pages: int):
+    keyboard = []
+    for app in applications:
+        keyboard.append([InlineKeyboardButton(
+            text=str(app["id"]),
+            callback_data=f"application:{app['id']}"
+        )])
+
+    nav_buttons = []
+
+    prev_page = page - 1 if page > 1 else total_pages
+    nav_buttons.append(
+        InlineKeyboardButton(text="⬅ Назад", callback_data=f"aplication_page:{prev_page}")
+    )
+
+    nav_buttons.append(
+        InlineKeyboardButton(text=f"{page}/{total_pages}", callback_data="none")
+    )
+
+    next_page = page + 1 if page < total_pages else 1
+    nav_buttons.append(
+        InlineKeyboardButton(text="Вперед ➡", callback_data=f"aplication_page:{next_page}")
+    )
+
+    keyboard.append(nav_buttons)
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
