@@ -5,10 +5,12 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 
+from asyncpg.pool import Pool
+
 import keyboards.admin as admin_keyboards
 
 from states import UserMailing
-from db.crud import get_all_user
+from db.crud import UserDB
 from utils.admin import delete_message_with_timeout
 
 
@@ -97,7 +99,9 @@ async def set_mailing_delete_time(callback: CallbackQuery, state: FSMContext):
         
         
 @router.callback_query(F.data == 'confirm_mailing')
-async def confirm_mailing(callback: CallbackQuery, state: FSMContext):
+async def confirm_mailing(callback: CallbackQuery, state: FSMContext, pool: Pool):
+    user_db = UserDB(pool)
+    
     await callback.answer('Рассылка началась! Ожидайте')
     
     data = await state.get_data()
@@ -108,7 +112,7 @@ async def confirm_mailing(callback: CallbackQuery, state: FSMContext):
     
     await asyncio.sleep(int(timer))
     
-    users = await get_all_user()
+    users = await user_db.get_all_users()
     count = 0
     for user in users:
         user_id = user['tg_id']

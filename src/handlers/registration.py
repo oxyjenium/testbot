@@ -2,6 +2,7 @@ import re
 import asyncpg
 
 from datetime import datetime
+from asyncpg.pool import Pool
 
 from aiogram import Router, F
 from aiogram.filters import CommandStart
@@ -10,7 +11,7 @@ from aiogram.fsm.context import FSMContext
 
 import keyboards.user as user_keyboards
 
-from db.crud import create_user, update_user_details, check_user_fields
+from db.crud import UserDB
 from states import UserRegistration
 
 
@@ -21,14 +22,15 @@ DATE_PATTERN = re.compile(r"^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])\.(19|20)\
 
 
 @router.message(CommandStart())
-async def start_command(message: Message, state: FSMContext):
+async def start_command(message: Message, state: FSMContext, pool: Pool):
+    user_db = UserDB(pool)
     try:
-        await create_user(
+        await user_db.create_user(
             tg_id=message.from_user.id,
             username=message.from_user.username
         )
     except asyncpg.exceptions.UniqueViolationError:
-        if await check_user_fields(tg_id=message.from_user.id):
+        if await user_db.check_user_fields(tg_id=message.from_user.id):
             await message.answer(
                 text='👋 Привет! Ты уже зарегистрирован в нашем боте.',
                 reply_markup=user_keyboards.main_menu(),
@@ -97,7 +99,9 @@ async def get_date_birth(message: Message, state: FSMContext):
     
 
 @router.message(UserRegistration.number, F.contact)
-async def get_contact(message: Message, state: FSMContext):
+async def get_contact(message: Message, state: FSMContext, pool: Pool):
+    user_db = UserDB(pool)
+    
     contact = message.contact
 
     if not contact or not contact.phone_number:
@@ -108,7 +112,7 @@ async def get_contact(message: Message, state: FSMContext):
     full_name = data.get('full_name')
     date_birth = data.get('date_birth')
 
-    await update_user_details(
+    await user_db.update_user_details(
         tg_id=message.from_user.id,
         full_name=full_name,
         date_birth=datetime.strptime(date_birth, "%d.%m.%Y").date(),

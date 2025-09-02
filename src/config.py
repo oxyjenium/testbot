@@ -1,9 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-
 load_dotenv()
-
 
 BOT_TOKEN=os.getenv("BOT_TOKEN")
 
@@ -16,6 +14,7 @@ PORT_DB=os.getenv("PORT_DB")
 CHAT_ID=os.getenv("CHAT_ID")
 
 ADMIN=os.getenv("ADMIN")
+ADMIN_LIST=[int(a.strip()) for a in ADMIN.split(",") if a.strip().isdigit()]
 
 USERS_PER_PAGE = 5
 APPLICATIONS_PER_PAGE = 5

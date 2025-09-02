@@ -2,12 +2,14 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 
+from asyncpg.pool import Pool
+
 import keyboards.user as user_keyboards
 import config as cfg
 
 from states import UserApplications
 from keyboards.user import TECHS
-from db.crud import add_application, get_last_application_by_user, get_user
+from db.crud import UserDB, ApplicationDB
 
 
 router = Router()
@@ -180,7 +182,10 @@ async def get_deadline(message: Message, state: FSMContext):
     
     
 @router.callback_query(F.data == "confirm_application")
-async def confirm_application(callback: CallbackQuery, state: FSMContext):
+async def confirm_application(callback: CallbackQuery, state: FSMContext, pool: Pool):
+    user_db = UserDB(pool)
+    application_db = ApplicationDB(pool)
+    
     await callback.message.delete()
     
     data = await state.get_data()
@@ -191,7 +196,7 @@ async def confirm_application(callback: CallbackQuery, state: FSMContext):
     file_id = data.get('file_id')
     user_id = callback.from_user.id
 
-    await add_application(
+    await application_db.add_application(
         user_id=user_id,
         service=service,
         description=description,
@@ -200,8 +205,8 @@ async def confirm_application(callback: CallbackQuery, state: FSMContext):
         screenshot=file_id
     )
     
-    application = await get_last_application_by_user(user_id)
-    user = await get_user(user_id)
+    application = await application_db.get_last_application_by_user(user_id=user_id)
+    user = await user_db.get_user(user_id=user_id)
     
     text = f"📌 Новая заявка №{application.get('id')}\n👤 Клиент: {user.get('full_name')}\n📞 Телефон: {user.get('number')}\n🛠 Услуга: {application.get('service')}\n💻 Технологии: {application.get('technologies')}\n📅 Срок выполнения: {application.get('deadline')}\n📝 Описание: {application.get('description')}"
     

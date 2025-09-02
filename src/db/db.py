@@ -1,4 +1,5 @@
 import asyncpg
+from asyncpg import Pool
 
 import config as cfg
 
@@ -42,6 +43,13 @@ async def init_db():
         );
         """)
 
-async def get_connection():
-    global pool
+
+def get_pool() -> Pool:
     return pool
+
+
+async def close_pool():
+    global pool
+    if pool:
+        await pool.close()
+        pool = None

@@ -3,12 +3,13 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
+from asyncpg.pool import Pool
+
 import keyboards.admin as admin_keyboards
 import config as cfg
 
 from filters import IsAdmin
-from db.crud import get_users_count, get_users_list, get_user, get_applications_count, get_applications_list, get_application_by_id
-
+from db.crud import UserDB, ApplicationDB
 
 router=Router()
 
@@ -45,12 +46,14 @@ async def main_menu_admin(callback: CallbackQuery, state: FSMContext):
     
 
 @router.callback_query(IsAdmin(), F.data == 'users_stats')
-async def users_stats(callback: CallbackQuery):
+async def users_stats(callback: CallbackQuery, pool: Pool):
+    user_db = UserDB(pool)
+    
     await callback.answer()
     page=1
-    total_users = await get_users_count()
+    total_users = await user_db.get_users_count()
     total_pages = (total_users + cfg.USERS_PER_PAGE - 1) // cfg.USERS_PER_PAGE
-    users = await get_users_list(offset=(page-1)*cfg.USERS_PER_PAGE)
+    users = await user_db.get_users_list(offset=(page-1)*cfg.USERS_PER_PAGE)
     await callback.message.edit_text(
         text='📊 <strong>Статистика пользователей:</strong>\n<i>Здесь будет отображаться количество зарегистрированных пользователей.</i>',
         reply_markup=admin_keyboards.make_user_keyboard(page, users, total_pages),
@@ -59,19 +62,23 @@ async def users_stats(callback: CallbackQuery):
     
 
 @router.callback_query(F.data.startswith("page:"))
-async def change_page(callback: CallbackQuery):
+async def change_page(callback: CallbackQuery, pool: Pool):
+    user_db = UserDB(pool)
+        
     page = int(callback.data.split(":")[1])
-    total_users = await get_users_count()
+    total_users = await user_db.get_users_count()
     total_pages = (total_users + cfg.USERS_PER_PAGE - 1) // cfg.USERS_PER_PAGE
-    users = await get_users_list(offset=(page-1)*cfg.USERS_PER_PAGE)
+    users = await user_db.get_users_list(offset=(page-1)*cfg.USERS_PER_PAGE)
     keyboard = admin_keyboards.make_user_keyboard(page, users, total_pages)
     await callback.message.edit_reply_markup(reply_markup=keyboard)
     
 
 @router.callback_query(F.data.startswith("user:"))
-async def show_user(callback: CallbackQuery):
+async def show_user(callback: CallbackQuery, pool: Pool):
+    user_db = UserDB(pool)
+    
     tg_id = int(callback.data.split(":")[1])
-    user = await get_user(tg_id)
+    user = await user_db.get_user(user_id=tg_id)
     if user:
         text = (
             f"ID: {user['id']}\n"
@@ -91,12 +98,14 @@ async def show_user(callback: CallbackQuery):
         
         
 @router.callback_query(F.data == "applications_stats")
-async def applications_stats(callback: CallbackQuery):
+async def applications_stats(callback: CallbackQuery, pool: Pool):
+    application_db = ApplicationDB(pool)
+    
     await callback.answer()
     page=1
-    total_applications = await get_applications_count()
+    total_applications = await application_db.get_applications_count()
     total_pages = (total_applications + cfg.APPLICATIONS_PER_PAGE - 1) // cfg.APPLICATIONS_PER_PAGE
-    applications = await get_applications_list(offset=(page-1)*cfg.APPLICATIONS_PER_PAGE)
+    applications = await application_db.get_applications_list(offset=(page-1)*cfg.APPLICATIONS_PER_PAGE)
     try:
         await callback.message.edit_text(
             text='📊 <strong>Статистика заявок:</strong>\n<i>Здесь будет отображаться количество заявок и их статус.</i>',
@@ -113,23 +122,28 @@ async def applications_stats(callback: CallbackQuery):
     
 
 @router.callback_query(F.data.startswith("aplication_page:"))
-async def change_page(callback: CallbackQuery):
+async def change_page(callback: CallbackQuery, pool: Pool):
+    application_db = ApplicationDB(pool)
+    
     page = int(callback.data.split(":")[1])
-    total_applications = await get_applications_count()
+    total_applications = await application_db.get_applications_count()
     total_pages = (total_applications + cfg.APPLICATIONS_PER_PAGE - 1) // cfg.APPLICATIONS_PER_PAGE
-    applications = await get_applications_list(offset=(page-1)*cfg.APPLICATIONS_PER_PAGE)
+    applications = await application_db.get_applications_list(offset=(page-1)*cfg.APPLICATIONS_PER_PAGE)
     keyboard = admin_keyboards.make_application_keyboard(page, applications, total_pages)
     await callback.message.edit_reply_markup(reply_markup=keyboard)
     
     
 @router.callback_query(F.data.startswith("application:"))
-async def show_application(callback: CallbackQuery):
+async def show_application(callback: CallbackQuery, pool: Pool):
+    user_db = UserDB(pool)
+    application_db = ApplicationDB(pool)
+    
     await callback.answer()
     
     application_id = int(callback.data.split(":")[1])
-    application = await get_application_by_id(application_id)
+    application = await application_db.get_application_by_id(application_id=application_id)
     if application:
-        user = await get_user(application['user_id'])
+        user = await user_db.get_user(user_id=application['user_id'])
         text = (
             f"ID: {application['id']}\n"
             f"Клиент: {user['full_name']}\n"
@@ -158,10 +172,13 @@ async def show_application(callback: CallbackQuery):
         
         
 @router.callback_query(F.data == "all_stats")
-async def all_stats(callback: CallbackQuery):
+async def all_stats(callback: CallbackQuery, pool: Pool):
+    user_db = UserDB(pool)
+    application_db = ApplicationDB(pool)
+    
     await callback.answer()
-    total_users = await get_users_count()
-    total_applications = await get_applications_count()
+    total_users = await user_db.get_users_count()
+    total_applications = await application_db.get_applications_count()
     
     text = (
         f"📊 <strong>Общая статистика:</strong>\n"
